@@ -17,7 +17,7 @@ WHITE = (255,255,255)
 
 # Load In Image Assets
 BG = pygame.transform.scale(pygame.image.load(os.path.join("images", "PacManMap.png")), (WIDTH, HEIGHT))
-PLAYER_IMAGE = pygame.image.load(os.path.join("images", "pacman_c.png"))
+PLAYER_IMAGE  = pygame.image.load(os.path.join("images", "pacman_c.png"))
 
 
 FPS = 60
@@ -32,7 +32,6 @@ class Player:
         self.direction = dir
     
     def draw(self, window):
-        window.blit(self.mask.to_surface(unsetcolor=(255,0,0), setcolor=(255,0,0)), (self.x, self.y))
         window.blit(self.img,(self.x + 8, self.y + 6))
 
     def get_width(self):
@@ -105,27 +104,35 @@ def main():
         if keys[pygame.K_a] and player.x - player_vel > 0:
             playerCopy = Player(player.x - player_vel, player.y, PLAYER_IMAGE);
             if checkCollision(BG_MASK, playerCopy):
+                movePlayer(player)
                 continue
             else:
                 player.direction = 'l'
+                player.img = PLAYER_IMAGE
         if keys[pygame.K_d] and player.x + player_vel + player.get_width() < WIDTH:
             playerCopy = Player(player.x + player_vel, player.y, PLAYER_IMAGE);
             if checkCollision(BG_MASK, playerCopy):
+                movePlayer(player)
                 continue
             else:
                 player.direction = 'r'
+                player.img = PLAYER_IMAGE
         if keys[pygame.K_w] and player.y - player_vel > 0:
             playerCopy = Player(player.x, player.y - player_vel, PLAYER_IMAGE);
             if checkCollision(BG_MASK, playerCopy):
+                movePlayer(player)
                 continue
             else:
                 player.direction = 'u'
+                player.img = PLAYER_IMAGE
         if keys[pygame.K_s] and player.y + player_vel + player.get_height()< HEIGHT:
             playerCopy = Player(player.x, player.y + player_vel, PLAYER_IMAGE);
             if checkCollision(BG_MASK, playerCopy):
+                movePlayer(player)
                 continue
             else:
                 player.direction = 'd'
+                player.img = PLAYER_IMAGE
 
         movePlayer(player)  
 

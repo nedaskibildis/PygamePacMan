@@ -4,7 +4,9 @@ import time
 import random
 
 # Initializing Font And Window
+pygame.init()
 pygame.font.init()
+pygame.mixer.init()
 WIDTH, HEIGHT = 750, 750
 WIN = pygame.display.set_mode((WIDTH, HEIGHT))
 pygame.display.set_caption("Pac-Man")
@@ -28,7 +30,8 @@ BG = pygame.transform.scale(pygame.image.load(os.path.join("images", "PacManMap.
 PLAYER_IMAGE  = pygame.image.load(os.path.join("images", "pacman_c.png"))
 SPRITE_IMAGE = pygame.image.load(os.path.join("images", "dot.png" ))
 
-
+# Load Sounds
+movingSound = pygame.mixer.Sound(os.path.join("audio", "pacman_chomp.wav"))
 FPS = 60
 
 class Sprite:
@@ -54,6 +57,7 @@ class Player:
         self.img = img
         self.mask = pygame.mask.Mask((HITBOX_WIDTH, HITBOX_HEIGHT), True)
         self.direction = dir
+        self.soundCount = 0
     
     def draw(self, window):
         window.blit(self.img,(self.x + 8, self.y + 6))
@@ -127,6 +131,12 @@ def main():
             if checkCollision(BG_MASK, playerCopy):
                 return
             player.y += player_vel
+        
+        if player.soundCount == 35:
+            pygame.mixer.Sound.play(movingSound)
+            player.soundCount = 1
+        else:
+            player.soundCount += 1
     
     while run:
         clock.tick(FPS)
@@ -142,7 +152,6 @@ def main():
             for j in range(25):
                 if spriteArray[i][j]:
                     if checkSpriteCollision(player, spriteArray[i][j]):
-                        print('collision')
                         spriteArray[i][j] = None
 
         keys = pygame.key.get_pressed()

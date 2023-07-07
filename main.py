@@ -15,12 +15,36 @@ HITBOX_WIDTH, HITBOX_HEIGHT = 52, 46
 BLACK = (0,0,0)
 WHITE = (255,255,255)
 
+
+spriteArray = [[None] * 25 for i in range(25)]
+
+
+# for row in spriteArray:
+    # print(row)
+
+
 # Load In Image Assets
 BG = pygame.transform.scale(pygame.image.load(os.path.join("images", "PacManMap.png")), (WIDTH, HEIGHT))
 PLAYER_IMAGE  = pygame.image.load(os.path.join("images", "pacman_c.png"))
+SPRITE_IMAGE = pygame.image.load(os.path.join("images", "dot.png" ))
 
 
 FPS = 60
+
+class Sprite:
+    def __init__(self, x, y, img):
+        self.x = x
+        self.y = y
+        self.img = img
+        self.mask = pygame.mask.from_surface(img)
+
+    def draw(self, window):
+        if self.x == 35 * 4:
+            window.blit(self.img,(self.x + 20, self.y))
+        elif self.x == 12 * 35:
+            window.blit(self.img,(self.x - 20, self.y))
+        else:
+            window.blit(self.img,(self.x, self.y))
 
 class Player:
 
@@ -49,6 +73,10 @@ def main():
     clock = pygame.time.Clock()
     player_vel = 2
 
+    for i in range(25):
+        for j in range(25):
+            spriteArray[i][j] = Sprite(35 * i, 35 * j, SPRITE_IMAGE)
+
     BG_MASK = pygame.mask.from_surface(BG)
     
 
@@ -60,12 +88,21 @@ def main():
         offset = (obj2.x - 0, obj2.y - 0)
         return obj1.overlap(obj2.mask, offset) != None
 
+    def checkSpriteCollision(obj1, obj2):
+        offset_x = obj2.x - obj1.x
+        offset_y = obj2.y - obj1.y
+        return obj1.mask.overlap(obj2.mask, (offset_x, offset_y)) != None
+
     def redrawWindow():
         WIN.fill(BLACK)
         WIN.blit(BG, (0,0))
         player.draw(WIN)    
 
-
+        for i in range(25):
+            for j in range(25):
+                if spriteArray[i][j]:
+                    if not checkCollision(BG_MASK, spriteArray[i][j]) and i != 5 and i != 11:
+                        spriteArray[i][j].draw(WIN)
 
         pygame.display.update()
 
@@ -98,7 +135,15 @@ def main():
                 run = False
         
         checkCollision(BG_MASK, player)
+
         redrawWindow()
+
+        for i in range(25):
+            for j in range(25):
+                if spriteArray[i][j]:
+                    if checkSpriteCollision(player, spriteArray[i][j]):
+                        print('collision')
+                        spriteArray[i][j] = None
 
         keys = pygame.key.get_pressed()
         if keys[pygame.K_a] and player.x - player_vel > 0:

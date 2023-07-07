@@ -29,6 +29,7 @@ spriteArray = [[None] * 25 for i in range(25)]
 BG = pygame.transform.scale(pygame.image.load(os.path.join("images", "PacManMap.png")), (WIDTH, HEIGHT))
 PLAYER_IMAGE  = pygame.image.load(os.path.join("images", "pacman_c.png"))
 SPRITE_IMAGE = pygame.image.load(os.path.join("images", "dot.png" ))
+ORANGE_GHOST = pygame.image.load(os.path.join("images", "ghost3.png"))
 
 # Load Sounds
 movingSound = pygame.mixer.Sound(os.path.join("audio", "pacman_chomp.wav"))
@@ -49,6 +50,18 @@ class Sprite:
         else:
             window.blit(self.img,(self.x, self.y))
 
+class Ghost:
+    def __init__(self, x, y, img, timer):
+        self.x = x
+        self.y = y
+        self.img = img
+        self.timer = timer
+        self.direction = 'up'
+        self.mask = pygame.mask.Mask((HITBOX_WIDTH, HITBOX_HEIGHT), True)
+    
+    def draw(self, window):
+        window.blit(self.img, (self.x + 4, self.y + 4))
+        # window.blit(self.mask.to_surface(unsetcolor=(0,0,0), setcolor=(0,255,255)), (self.x, self.y))
 class Player:
 
     def __init__(self, x, y, img, dir=None):
@@ -58,6 +71,7 @@ class Player:
         self.mask = pygame.mask.Mask((HITBOX_WIDTH, HITBOX_HEIGHT), True)
         self.direction = dir
         self.soundCount = 0
+        self.direction = "down"
     
     def draw(self, window):
         window.blit(self.img,(self.x + 8, self.y + 6))
@@ -70,6 +84,7 @@ class Player:
     
     def get_direction(self):
         return self.direction
+    
 
 
 def main():
@@ -77,14 +92,17 @@ def main():
     clock = pygame.time.Clock()
     player_vel = 2
 
+    # Create Sprite Array
     for i in range(25):
         for j in range(25):
             spriteArray[i][j] = Sprite(35 * i, 35 * j, SPRITE_IMAGE)
 
+    # Set BG_mask
     BG_MASK = pygame.mask.from_surface(BG)
     
-
+    # Create Player And 4 Ghosts
     player = Player( (WIDTH/2 - PLAYER_IMAGE.get_width() / 2), (HEIGHT / 2 - PLAYER_IMAGE.get_height() / 2) + 53, PLAYER_IMAGE)
+    orangeGhost = Ghost(349, 320, ORANGE_GHOST, 0)
 
     n = 0
 
@@ -96,6 +114,41 @@ def main():
         offset_x = obj2.x - obj1.x
         offset_y = obj2.y - obj1.y
         return obj1.mask.overlap(obj2.mask, (offset_x, offset_y)) != None
+    
+    def checkCrossroads(ghost, bgMask):
+        openCount = 0
+
+        leftGhost = Ghost(ghost.x, ghost.y, ORANGE_GHOST, 0)
+        leftGhost.direction = "left"
+        rightGhost = Ghost(ghost.x, ghost.y, ORANGE_GHOST, 0)
+        rightGhost.direction = "right"
+        downGhost = Ghost(ghost.x, ghost.y, ORANGE_GHOST, 0)
+        downGhost.direction = "down"
+        upGhost = Ghost(ghost.x, ghost.y, ORANGE_GHOST, 0)
+        upGhost.direction = "up"
+
+        if not checkGhostCollision(bgMask, leftGhost, leftGhost.direction):
+            openCount += 1
+        if not checkGhostCollision(bgMask, rightGhost, rightGhost.direction):
+            openCount += 1
+        if not checkGhostCollision(bgMask, upGhost, upGhost.direction):
+            openCount += 1
+        if not checkGhostCollision(bgMask, downGhost, downGhost.direction):
+            openCount += 1
+        
+        if openCount >= 3:
+            if ghost.direction == "left":
+                ghost.direction = "right"
+                changeDirection(ghost, bgMask)
+            elif ghost.direction == "right":
+                ghost.direction = "left"
+                changeDirection(ghost, bgMask)
+            elif ghost.direction == "down":
+                ghost.direction = "up"
+                changeDirection(ghost, bgMask)
+            elif ghost.direction == "up":
+                ghost.direction = "down"
+                changeDirection(ghost, bgMask)
 
     def redrawWindow():
         WIN.fill(BLACK)
@@ -107,10 +160,15 @@ def main():
                 if spriteArray[i][j]:
                     if not checkCollision(BG_MASK, spriteArray[i][j]) and i != 5 and i != 11:
                         spriteArray[i][j].draw(WIN)
-
+        orangeGhost.draw(WIN)
         pygame.display.update()
 
     def movePlayer(player):
+        if player.x < 0:
+            player.x = WIDTH
+        if player.x > WIDTH:
+            player.x = 0
+
         if player.direction == 'l':
             playerCopy = Player(player.x - player_vel, player.y, PLAYER_IMAGE);
             if checkCollision(BG_MASK, playerCopy):
@@ -138,6 +196,47 @@ def main():
         else:
             player.soundCount += 1
     
+    def moveGhost(ghost):
+        if ghost.timer > 30:
+            if ghost.x >= 296 and ghost.x <= 402 and ghost.y + HITBOX_HEIGHT == 318:
+                return
+        else:
+            ghost.timer += 1
+        if ghost.x < 0:
+            ghost.x = WIDTH
+        if ghost.x > WIDTH:
+            ghost.x = 0
+        if ghost.direction == "up":
+            ghost.y -= 2
+        elif ghost.direction == "down":
+            ghost.y += 2
+        if ghost.direction == "left":
+            ghost.x -= 2
+        if ghost.direction == "right":
+            ghost.x += 2
+
+    def checkGhostCollision(obj1, obj2, direction):
+        if direction == "up":
+            offset = (obj2.x - 0, obj2.y - 2)
+        elif direction == "down":
+            offset = (obj2.x - 0, obj2.y + 2)
+        elif direction == "left":
+            offset = (obj2.x - 2, obj2.y - 0)
+        elif direction == "right":
+            offset = (obj2.x + 2, obj2.y - 0)
+        return obj1.overlap(obj2.mask, offset) != None
+    
+    def changeDirection(ghost, bg):
+        newDirection = ghost.direction
+        goodToGo = False
+        while newDirection == ghost.direction or goodToGo == False :
+            newDirection = random.choice(('up', 'left', 'right', 'down'))
+            if checkGhostCollision(bg, ghost, newDirection):
+                goodToGo = False
+            else:
+                goodToGo = True
+        ghost.direction = newDirection
+
     while run:
         clock.tick(FPS)
         for event in pygame.event.get():
@@ -145,7 +244,6 @@ def main():
                 run = False
         
         checkCollision(BG_MASK, player)
-
         redrawWindow()
 
         for i in range(25):
@@ -188,7 +286,13 @@ def main():
                 player.direction = 'd'
                 player.img = PLAYER_IMAGE
 
-        movePlayer(player)  
+        movePlayer(player)
+        
+        if checkGhostCollision(BG_MASK, orangeGhost, orangeGhost.direction):
+            changeDirection(orangeGhost, BG_MASK)
+        
+        checkCrossroads(orangeGhost,BG_MASK)
+        moveGhost(orangeGhost)  
 
 
     pygame.quit()
